@@ -12,7 +12,7 @@
 				"/EHsc",
 				"/Fe:",
 				"${fileDirname}\\${fileBasenameNoExtension}.exe",
-				"${file}", "szorny.cc", "lovedek.cc",
+				"${file}", "szorny.cc", "lovedek.cc", "szornyek.cc", "urhajo.cc",
 				"/link",
                 "sfml-graphics.lib",
                 "sfml-window.lib",

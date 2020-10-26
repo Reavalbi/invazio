@@ -3,12 +3,14 @@
 #include <SFML/Window.hpp>
 #include <array>
 #include <cmath>
+#include <iostream>
 #include <random>
 #include <vector>
-#include <iostream>
 
 #include "lovedek.h"
 #include "szorny.h"
+#include "szornyek.h"
+#include "urhajo.h"
 
 std::random_device rnd_dev;
 
@@ -18,163 +20,10 @@ std::default_random_engine rnd_engine(rnd_dev());
 const float szorny_magassag = 30;
 const float szorny_szelesseg = 55;
 
-class szornyek : public sf::Drawable {
- public:
-  szornyek(int sorok, int oszlopok, float x, float y)
-      : sorok{sorok}, oszlopok{oszlopok} {
-    for (int sor = 0; sor < sorok; ++sor) {
-      std::vector<szorny> uj_sor;
-      float uj_y = y + sor * (szorny_magassag + 10);
-      for (int oszlop = 0; oszlop < oszlopok; ++oszlop) {
-        float uj_x = x + oszlop * (szorny_szelesseg + 10);
-        szorny uj_sz{szorny_szelesseg, szorny_magassag, uj_x, uj_y};
-        uj_sor.push_back(uj_sz);
-      }
-      sz.push_back(uj_sor);
-    }
-  }
-
-  std::vector<lovedek> uj_lovedek() {
-    std::vector<szorny> alsok;
-
-    for (int oszlop = 0; oszlop < oszlopok; ++oszlop) {
-      for (int sor = sorok - 1; sor >= 0; --sor) {
-        if (sz[sor][oszlop].teljes()) {
-          alsok.push_back(sz[sor][oszlop]);
-          break;
-        }
-        if (sz[sor][oszlop].elo()) {
-          break;
-        }
-      }
-    }
-
-    std::vector<lovedek> result;
-    if (alsok.size() == 0) {
-      return result;
-    }
-    std::uniform_int_distribution<int> uniform_dist(0, alsok.size() - 1);
-    int lovo = uniform_dist(rnd_engine);
-    szorny& lovo_szorny = alsok[lovo];
-    lovedek l{3, lovo_szorny.x_kozep() - 1.5f, lovo_szorny.alja()};
-    result.push_back(l);
-    return result;
-  }
-
-  float jobb_oldal() {
-    float jo = 0;
-    bool elso = true;
-    for (int sor = 0; sor < sz.size(); ++sor) {
-      for (int oszlop = 0; oszlop < sz[sor].size(); ++oszlop) {
-        if (!sz[sor][oszlop].elo()) {
-          continue;
-        }
-        float szjo = sz[sor][oszlop].jobb_oldal();
-        if (elso || szjo > jo) {
-          jo = szjo;
-          elso = false;
-        }
-      }
-    }
-    return jo;
-  }
-
-  float bal_oldal() {
-    float bo = 0;
-    bool elso = true;
-    for (int sor = 0; sor < sz.size(); ++sor) {
-      for (int oszlop = 0; oszlop < sz[sor].size(); ++oszlop) {
-        if (!sz[sor][oszlop].elo()) {
-          continue;
-        }
-        float szbo = sz[sor][oszlop].bal_oldal();
-        if (elso || szbo < bo) {
-          bo = szbo;
-          elso = false;
-        }
-      }
-    }
-    return bo;
-  }
-
-  void mozdit(float x, float y) {
-    for (int sor = 0; sor < sz.size(); ++sor) {
-      for (int oszlop = 0; oszlop < sz[sor].size(); ++oszlop) {
-        sz[sor][oszlop].mozdit(x, y);
-      }
-    }
-  }
-
-  bool talalat_vizsgalat(lovedek const& l) {
-    bool eredmeny = false;
-    for (int sor = 0; sor < sz.size(); ++sor) {
-      for (int oszlop = 0; oszlop < sz[sor].size(); ++oszlop) {
-        if (sz[sor][oszlop].talalat_vizsgalat(l)) {
-          eredmeny = true;
-        }
-      }
-    }
-    return eredmeny;
-  }
-
- private:
-  std::vector<std::vector<szorny>> sz;
-  int sorok, oszlopok;
-  virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
-    for (int sor = 0; sor < sz.size(); ++sor) {
-      for (int oszlop = 0; oszlop < sz[sor].size(); ++oszlop) {
-        target.draw(sz[sor][oszlop]);
-      }
-    }
-  }
-};
-
-class urhajo : public sf::Drawable {
- public:
-  urhajo(float w, float h, float x, float y)
-      : w{w}, h{h}, x{x}, y{y}, eltalalt{false} {}
-
-  bool talalat_vizsgalat(lovedek const& l) {
-    float lkx = l.x + l.r;
-    float lky = l.y + l.r;
-    float vr = l.r / 2;
-    float x1 = x - w / 2;
-    float x2 = x + w / 2;
-    float y1 = y;
-    float y2 = y + h;
-    bool eredmeny = false;
-    if (lky < y2 + vr && lky > y1 - vr && lkx < x2 + vr && lkx > x1 - vr) {
-      eredmeny = true;
-      eltalalt = true;
-    }
-    return eredmeny;
-  }
-
-  bool elo() { return !eltalalt; }
-
-  float bal_oldal() { return x - w / 2; }
-
-  float jobb_oldal() { return x + w / 2; }
-
-  void set_x(float uj_x) { x = uj_x; }
-
- private:
-  float w, h, x, y;
-  bool eltalalt;
-
-  virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
-    sf::RectangleShape rectangle;
-    rectangle.setSize(sf::Vector2f(w, h));
-    rectangle.setOutlineColor(sf::Color::Red);
-    rectangle.setOutlineThickness(0);
-    rectangle.setPosition(x - w / 2, y);
-    target.draw(rectangle);
-  }
-};
 
 int main() {
   sf::RenderWindow window(sf::VideoMode(800, 600), "szorny");
-  szornyek sz{4, 11, 20, 40};
+  szornyek sz{4, 11, 20, 40, szorny_magassag, szorny_szelesseg, rnd_engine};
   std::vector<lovedek> lovedekek, szorny_lovedekek;
   float urhajo_x = 400;
   sf::Clock loves_clock, frame_clock, szorny_loves_clock;
@@ -242,7 +91,7 @@ int main() {
 
     if (lovunk &&
         (loves_clock.getElapsedTime().asMilliseconds() > loves_kivaras ||
-         elso_loves|| lovedekek.size() == 0)) {
+         elso_loves || lovedekek.size() == 0)) {
       lovedek l{5, urhajo_x - 2.5f, 590 - 5 - szorny_magassag};
       lovedekek.push_back(l);
       loves_clock.restart();
@@ -290,7 +139,7 @@ int main() {
         if (lovedekek[li].talalat_vizsgalat(szorny_lovedekek[i])) {
           lovedekek.erase(lovedekek.begin() + li);
           szorny_lovedekek.erase(szorny_lovedekek.begin() + i);
-        continue;
+          continue;
         }
       }
       if (uh.talalat_vizsgalat(szorny_lovedekek[i])) {
