@@ -15,7 +15,7 @@ class szorny : public sf::Drawable {
   float bal_oldal() { return x; }
   float jobb_oldal() { return x + w; }
   float alja() { return y + h; }
-  float x_kozep() { return x + w / 2; 
+  float x_kozep() { return x + w / 2; }
   void mozdit(float dx, float dy) {
     x += dx;
     y += dy;
